@@ -1,1 +1,1 @@
-worker: python vpn.py
+web: python vpn.py

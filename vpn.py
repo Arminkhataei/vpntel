@@ -23,9 +23,9 @@ SELECT_SERVICE, PAYMENT_METHOD, RECEIPT_PHOTO, DISCOUNT_CODE = range(4)
 
 # لیست سرویس‌ها با اطلاعات کامل
 SERVICES = [
-    {
+   {
         "name": "1 ماهه - 1 کاربره", 
-        "price": 89000, 
+        "price": 249, 
         "duration": "1 ماه", 
         "days": 30, 
         "volume": "🌐 نامحدود",
@@ -33,19 +33,19 @@ SERVICES = [
         "description": "سرویس یک ماهه با حجم نامحدود"
     },
     {
-        "name": "3 ماهه - 1 کاربره", 
-        "price": 249000, 
-        "duration": "3 ماه", 
-        "days": 90, 
+        "name": "2 ماهه - 1 کاربره", 
+        "price": 498, 
+        "duration": "2 ماه", 
+        "days": 60, 
         "volume": "🌐 نامحدود",
         "emoji": "🟢",
-        "description": "سرویس سه ماهه با حجم نامحدود"
+        "description": "سرویس دو ماهه با حجم نامحدود"
     },
     {
-        "name": "6 ماهه - 1 کاربره", 
-        "price": 459000, 
-        "duration": "6 ماه", 
-        "days": 180, 
+        "name": "3 ماهه - 1 کاربره", 
+        "price": 747, 
+        "duration": "3 ماه", 
+        "days": 90, 
         "volume": "🌐 نامحدود",
         "emoji": "🟠",
         "description": "سرویس شش ماهه با حجم نامحدود"
@@ -55,25 +55,25 @@ SERVICES = [
 # کدهای تخفیف
 DISCOUNT_CODES = {
     "312": {
-        "discount": 0.1,  # 10% تخفیف
+        "discount": 0.2048,  # حدود 20.5% تخفیف
         "card_index": 0  # استفاده از کارت آرمین ختایی
     },
     "311": {
-        "discount": 0.15,  # 15% تخفیف
+        "discount": 0.2048,  # حدود 20.5% تخفیف
         "card_index": 1  # استفاده از کارت محمد رضا صابون چی
     }
 }
 
+
 # اطلاعات کارت‌ها
 CARDS = [
-    {
+       {
+        "number": "5892101589995279", 
+        "name": "محمد رضا صابونچی",
+        "emoji": "💳"
+    }, {
         "number": "5859831146061881",
         "name": "آرمین ختایی",
-        "emoji": "💳"
-    },
-    {
-        "number": "6037998194751234", 
-        "name": "محمد رضا صابون چی",
         "emoji": "💳"
     }
 ]
@@ -118,6 +118,7 @@ def get_main_menu():
         [KeyboardButton("✨ خرید سرویس ✨")],
         [KeyboardButton("🎯 تست رایگان 🎯"), KeyboardButton("📋 سرویس‌ها 📋")],
         [KeyboardButton("📊 سرویس من 📊"), KeyboardButton("🛟 پشتیبانی 🛟")],
+        [KeyboardButton("🔄 راهنما / شروع مجدد 🔄")]  # دکمه برجسته در خط جداگانه
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -129,6 +130,38 @@ async def show_main_menu(update: Update, message: str = None):
         add_bot_signature(message),
         reply_markup=get_main_menu()
     )
+
+async def restart_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """شروع مجدد ربات بدون پاک کردن اطلاعات کاربر"""
+    user = update.effective_user
+    
+    # فقط jobهای مربوط به پرداخت را لغو می‌کنیم
+    current_jobs = context.job_queue.get_jobs_by_name(f"payment_timeout_{user.id}")
+    for job in current_jobs:
+        job.schedule_removal()
+    
+    # لغو jobهای حذف کارت
+    current_card_jobs = context.job_queue.get_jobs_by_name(f"card_delete_{user.id}")
+    for job in current_card_jobs:
+        job.schedule_removal()
+    
+    welcome_message = (
+        "🔄 ربات راه‌اندازی مجدد شد\n\n"
+        "🌟 سلام به ربات BestVpn خوش آمدید 🌟\n\n"
+        "🛡️ ارائه دهنده سرویس‌های VPN پرسرعت و مطمئن\n\n"
+        "✅ ویژگی‌های سرویس‌های ما:\n"
+        "• 🔒 امنیت و حریم خصوصی\n"
+        "• 🚀 سرعت بالا و پینگ پایین\n"
+        "• 🌐 حجم نامحدود اینترنت\n"
+        "• 📱 سازگاری با تمام دستگاه‌ها\n\n"
+        "لطفا از منوی زیر انتخاب کنید:"
+    )
+    
+    await update.message.reply_text(
+        add_bot_signature(welcome_message),
+        reply_markup=get_main_menu()
+    )
+    return SELECT_SERVICE
 
 async def send_service_activated_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     """ارسال پیام فعال شدن سرویس به کاربر با اطلاعات کامل"""
@@ -321,7 +354,7 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     support_text = (
         "🛟 پشتیبانی آنلاین\n\n"
         "📞 برای ارتباط با پشتیبانی به آیدی زیر پیام دهید:\n"
-        "👉 @PolotoCall\n\n"
+        "👉 @MyServiceSupport2\n\n"
         "⏰ ساعت پاسخگویی: 24 ساعته\n"
         "⚡ پاسخگویی سریع و مطمئن"
     )
@@ -397,7 +430,7 @@ async def free_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎯 تست رایگان VPN\n\n"
         "✅ جهت دریافت تست رایگان لطفاً به یکی از آی‌دی‌های زیر پیام دهید:\n\n"
         "🔹 @MyServiceSupport1\n"
-        "🔹 @MAMMAD\n\n"
+        "🔹 @MyServiceSupport2\n\n"
         "⚡ دریافت کانفیگ تست در سریع‌ترین زمان ممکن"
     )
     
@@ -468,6 +501,9 @@ async def select_service(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if text == "📋 سرویس‌ها 📋":
         return await show_services(update, context)
     
+    if text == "🔄 راهنما / شروع مجدد 🔄":
+        return await restart_bot(update, context)
+    
     if text == "✨ خرید سرویس ✨":
         # نمایش سرویس‌های قابل خرید به صورت زیباتر
         services_text = "🌟 سرویس‌های قابل خرید:\n\n"
@@ -506,7 +542,7 @@ async def select_service(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             break
     
     if selected_service:
-        # ذخیره انتخاب пользователя
+        # ذخیره انتخاب کاربر
         if update.effective_user.id not in user_data:
             user_data[update.effective_user.id] = {}
             
@@ -549,6 +585,9 @@ async def payment_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     
     if text == "🛟 پشتیبانی 🛟":
         return await support(update, context)
+    
+    if text == "🔄 راهنما / شروع مجدد 🔄":
+        return await restart_bot(update, context)
     
     if text == "🎫 استفاده از کد تخفیف 🎫":
         await update.message.reply_text(
@@ -726,7 +765,7 @@ async def handle_discount_code(update: Update, context: ContextTypes.DEFAULT_TYP
         payment_message = (
             f"✅ کد تخفیف اعمال شد!\n\n"
             f"💰 قیمت اصلی: {original_price:,} تومان\n"
-            f"🎫 قیمت با تخфиف: {discounted_price:,} تومان\n"
+            f"🎫 قیمت با تخفیف: {discounted_price:,} تومان\n"
             f"💸 صرفه‌جویی: {original_price - discounted_price:,} تومان\n\n"
             f"لطفاً مبلغ {discounted_price:,} تومان را به شماره کارت زیر پرداخت کنید:\n\n"
             f"💳 {card_info['number']}\n"
@@ -789,7 +828,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         job.schedule_removal()
     
     # اگر کاربر از منو استفاده کرد (عکس نفرستاد)
-    if not update.message.photo and text in ["✨ خرید سرویس ✨", "🎯 تست رایگان 🎯", "📋 سرویس‌ها 📋", "📊 سرویس من 📊", "🛟 پشتیبانی 🛟", "🔙 بازگشت 🔙"]:
+    if not update.message.photo and text in ["✨ خرید سرویس ✨", "🎯 تست رایگان 🎯", "📋 سرویس‌ها 📋", "📊 سرویس من 📊", "🛟 پشتیبانی 🛟", "🔄 راهنما / شروع مجدد 🔄", "🔙 بازگشت 🔙"]:
         # پاک کردن داده‌های موقت کاربر
         if user.id in user_data:
             del user_data[user.id]
@@ -1146,7 +1185,8 @@ def main() -> None:
         },
         fallbacks=[
             CommandHandler("start", start),
-            MessageHandler(filters.Text(["🛟 پشتیبانی 🛟"]), support)
+            MessageHandler(filters.Text(["🛟 پشتیبانی 🛟"]), support),
+            MessageHandler(filters.Text(["🔄 راهنما / شروع مجدد 🔄"]), restart_bot)
         ],
     )
     
@@ -1154,6 +1194,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.Text(["🛟 پشتیبانی 🛟"]), support))
     application.add_handler(MessageHandler(filters.Text(["🎯 تست رایگان 🎯"]), free_test))
     application.add_handler(MessageHandler(filters.Text(["📊 سرویس من 📊"]), my_service))
+    application.add_handler(MessageHandler(filters.Text(["🔄 راهنما / شروع مجدد 🔄"]), restart_bot))
     application.add_handler(CommandHandler("sendconfig", send_config))
     application.add_handler(CommandHandler("sendtest", send_test))
     application.add_handler(CommandHandler("help", help_command))
